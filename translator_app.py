@@ -66,4 +66,4 @@ def home():
     return render_template_string(HTML, translated=translated, error=error)
 
 if __name__ == "__main__":
-    app.run(debug=True, use_reloader=False)
+    app.run(debug=True)
