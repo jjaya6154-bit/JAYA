@@ -1,69 +1,43 @@
-from flask import Flask, render_template_string, request
-from dotenv import load_dotenv
+import streamlit as st
 from openai import OpenAI
 import os
+from dotenv import load_dotenv
 
-# Load environment variables
+# ✅ Load environment variables first
 load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
 
-# Initialize OpenAI client
-client = OpenAI(api_key=api_key)
+# ✅ Initialize OpenAI client
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-app = Flask(__name__)
+# App title
+st.set_page_config(page_title="🌍 Language Translator", page_icon="🌍")
+st.title("🌍 Language Translator")
 
-HTML = """
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Language Translator</title>
-  <style>
-    body { font-family: Arial; background: #f4f6f8; text-align: center; margin-top: 60px; }
-    textarea { width: 70%; height: 120px; padding: 10px; font-size: 16px; }
-    select, button { padding: 10px; font-size: 16px; margin: 10px; }
-  </style>
-</head>
-<body>
-  <h2>🌍 Language Translator</h2>
-  <form method="POST">
-    <textarea name="text" placeholder="Enter text to translate..." required></textarea><br>
-    <select name="target_lang">
-      <option value="Tamil">Tamil</option>
-      <option value="Hindi">Hindi</option>
-      <option value="French">French</option>
-      <option value="Japanese">Japanese</option>
-    </select><br>
-    <button type="submit">Translate</button>
-  </form>
+# User input
+text = st.text_area("Enter text to translate:", height=150)
 
-  {% if translated %}
-  <h3>🔤 Translated Message:</h3>
-  <p>{{ translated }}</p>
-  {% elif error %}
-  <h3 style="color:red;">⚠️ {{ error }}</h3>
-  {% endif %}
-</body>
-</html>
-"""
+# Language selection
+target_lang = st.selectbox(
+    "Choose target language:",
+    ["Tamil", "Hindi", "French", "Japanese"]
+)
 
-@app.route("/", methods=["GET", "POST"])
-def home():
-    translated = error = None
-    if request.method == "POST":
-        text = request.form["text"]
-        target_lang = request.form["target_lang"]
+if st.button("Translate"):
+    if text.strip() == "":
+        st.warning("⚠️ Please enter some text first!")
+    else:
         try:
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "You are a helpful translation assistant."},
-                    {"role": "user", "content": f"Translate this to {target_lang}: {text}"}
-                ]
-            )
-            translated = response.choices[0].message.content
+            with st.spinner("Translating..."):
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": "You are a helpful translation assistant."},
+                        {"role": "user", "content": f"Translate this to {target_lang}: {text}"}
+                    ]
+                )
+                translated = response.choices[0].message.content
+                st.success("✅ Translation complete!")
+                st.write("### 🔤 Translated Text:")
+                st.write(translated)
         except Exception as e:
-            error = f"Error: {str(e)}"
-    return render_template_string(HTML, translated=translated, error=error)
-
-if __name__ == "__main__":
-    app.run(debug=True)
+            st.error(f"❌ Error: {str(e)}")
